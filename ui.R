@@ -1,6 +1,6 @@
 library(shiny)
 library(leaflet)
-library(shinyTime)
+#library(shinyTime)
 
 
 
@@ -67,12 +67,20 @@ shinyUI(pageWithSidebar(
                      input.dataset === "Sensor Summary" ||
                      input.dataset === "Site Summary" ||
                      input.dataset === "Table"',
+                     selectInput("startTime", "Start Time", c("00:00", "01:00", "02:00", "03:00", "04:00", "05:00", "06:00", "07:00",
+                                                                    "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", 
+                                                                    "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", 
+                                                                    "22:00", "23:00")),
+                     selectInput("endTime", "End Time", c("01:00", "02:00", "03:00", "04:00", "05:00", "06:00", "07:00",
+                                                                "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", 
+                                                                "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", 
+                                                                "22:00", "23:00")),
                      htmlOutput("setDates")
                     ),
     
-    conditionalPanel(condition = 'input.dataset === "Time Series Plot"',
-                     checkboxInput("advFilter", "Advanced Filter", value = FALSE)
-                    ),
+    # conditionalPanel(condition = 'input.dataset === "Time Series Plot"',
+    #                  checkboxInput("advFilter", "Advanced Filter", value = FALSE)
+    #                 ),
     
     conditionalPanel(condition = 'input.dataset === "Time Series Plot" && input.advFilter === true',
                      sliderInput("seriesTimeRange", "Time Range", min = 0,                               
@@ -122,26 +130,26 @@ shinyUI(pageWithSidebar(
     conditionalPanel(condition = 'input.dataset === "Vector Plot"',
                      downloadButton('vectorDownload', 'Download'),
                      helpText("Downloaded data is what is displayed in vector plot.  Wind speeds are in m/s.
-                              Time is something.")
+                              Times are in MDT for BSB and SRC sites and UTC for BIRCH.")
                     ),
     
     conditionalPanel(condition = 'input.dataset === "Time Series Plot"',
                      downloadButton('multiSensorDownload', 'Download'),
                      helpText("Downloaded data is for single sensor between date range specified
-                              with wind and gust speeds in m/s. Time is something.")
+                              with wind and gust speeds in m/s. Times are in MDT for BSB and SRC sites and UTC for BIRCH.")
                     ),
     
     conditionalPanel(condition = 'input.dataset === "Sensor Summary" ||
                                   input.dataset === "Table"',
                      downloadButton('sensorDownload', 'Download'),
                      helpText("Downloaded data is for single sensor between date range specified
-                              with wind and gust speeds in m/s. Time is something.")
+                              with wind and gust speeds in m/s. Times are in MDT for BSB and SRC sites and UTC for BIRCH.")
     ),
     
 
     conditionalPanel(condition = 'input.dataset === "Site Summary"',
                      downloadButton('siteDownload', 'Download'),
-                     helpText("Downloads data for all sensors.  Wind speeds are in m/s. Time is something.")
+                     helpText("Downloads data for all sensors.  Wind speeds are in m/s. Times are in MDT for BSB and SRC sites and UTC for BIRCH.")
                     )
   ),
   
