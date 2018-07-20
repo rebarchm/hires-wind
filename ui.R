@@ -1,8 +1,5 @@
 library(shiny)
 library(leaflet)
-#library(shinyTime)
-
-
 
 # Define UI for high-res wind application
 shinyUI(pageWithSidebar(
@@ -78,16 +75,11 @@ shinyUI(pageWithSidebar(
                      htmlOutput("setDates")
                     ),
     
-    # conditionalPanel(condition = 'input.dataset === "Time Series Plot"',
-    #                  checkboxInput("advFilter", "Advanced Filter", value = FALSE)
-    #                 ),
-    
     conditionalPanel(condition = 'input.dataset === "Time Series Plot" && input.advFilter === true',
                      sliderInput("seriesTimeRange", "Time Range", min = 0,                               
                                  max = 23, value = c(8, 11))
                     ),
                      
-    
     conditionalPanel(condition = 'input.dataset === "Vector Plot"',
                      #timeInput("vectorTime", "Time (tz)", seconds = FALSE, value = strptime("08:00", "%R")),  # Somewhat irrelavant on this page
                      selectInput("mapType", "Map Type", 
