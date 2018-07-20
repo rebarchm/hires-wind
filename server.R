@@ -9,6 +9,108 @@ library(xts)
 library(leaflet)
 
 
+###################################################################################################################
+####   dbFetchWind Function  
+###################################################################################################################
+
+dbFetchWind <- function(db, sensors, start_time, end_time, progressBar=FALSE) {
+  # Pulls database data for sensor(s) and puts it in format usable by windtools packages    #Averaging=FALSE
+  stopifnot(require("RSQLite"))
+  con <- dbConnect(SQLite(), dbname = db)
+  
+  if (progressBar == TRUE) {
+    progress <- shiny::Progress$new()
+    on.exit(progress$close())
+    progress$set(message = "Accessing Data", value = 0)
+  }
+  
+  for(s in 1:length(sensors)){
+    # Get wind data for sensor
+    sql <- paste0("SELECT * FROM mean_flow_obs ",
+                  "WHERE Date_time BETWEEN '", start_time, "' ", "AND '", end_time, "' ",
+                  "AND plot_id ='", sensors[s], "' ", "AND Quality='OK'", collapse="")
+    res <- dbSendQuery(con, statement = sql)
+    d <- fetch(res, n = -1) #fetch all data
+    dbClearResult(res)
+    
+    
+    # Get sensor lat/lon
+    if (grepl("src.sqlite", db) == TRUE) {
+      sql <- paste0("SELECT plot_id, geometry, geometry FROM plot_location ",
+                    "WHERE plot_id ='", sensors[s], "'", collapse="")
+      res <- dbSendQuery(con, statement = sql)
+      latlon <- fetch(res, n=-1)
+      dbClearResult(res)
+      
+      # Pull coordinates from text strings {POINT(###,###)}
+      colnames(latlon) <- c("Plot_id", "Latitude", "Longitude")
+      latlon$Latitude <- sapply(strsplit(latlon$Latitude, ","), "[[",1)
+      latlon$Latitude <- gsub("POINT", "", latlon$Latitude)
+      latlon$Latitude <- as.numeric(substring(latlon$Latitude, 2))
+      latlon$Longitude <- sapply(strsplit(latlon$Longitude, ","), "[[", 2)
+      latlon$Longitude <- as.numeric(gsub(")", "", latlon$Longitude))
+      
+      # Format lat/lon matrix
+      latlon <- matrix(c(rep(latlon[2], NROW(d)), rep(latlon[3], NROW(d))), nrow = NROW(d), ncol=2)
+    }
+    else if (grepl("birch.sqlite", db) == TRUE) {
+      sql <- paste0("SELECT plot_id, geometry, geometry FROM plot_location ",
+                    "WHERE plot_id ='", sensors[s], "'", collapse="")
+      res <- dbSendQuery(con, statement = sql)
+      latlon <- fetch(res, n=-1)
+      dbClearResult(res)
+      
+      # Pull coordinates from text strings {POINT(###,###)}
+      colnames(latlon) <- c("Plot_id", "Latitude", "Longitude")
+      latlon$Latitude <- as.numeric(sapply(strsplit(latlon$Latitude, " "), "[[",1))
+      latlon$Longitude <- as.numeric(sapply(strsplit(latlon$Longitude, " "), "[[", 2))
+      
+      # Format lat/lon matrix
+      latlon <- matrix(c(rep(latlon[2], NROW(d)), rep(latlon[3], NROW(d))), nrow = NROW(d), ncol=2)
+    }
+    else if (grepl("bsb.sqlite", db) == TRUE) {
+      sql <- paste0("SELECT latitude, longitude FROM plot_location ",
+                    "WHERE plot_id ='", sensors[s], "'", collapse="")
+      res <- dbSendQuery(con, statement = sql)
+      latlon <- fetch(res, n = -1)
+      dbClearResult(res)
+      
+      # Format lat/lon matrix
+      latlon <- matrix(c(rep(latlon[1], NROW(d)), rep(latlon[2], NROW(d))), nrow = NROW(d), ncol=2)
+    }
+    
+    
+    # Combine data
+    d <- cbind(d, latlon)
+    if(s == 1){
+      master <- d
+    }
+    else{
+      master <- rbind(master, d)
+    }
+    
+    if (progressBar == TRUE) {
+      progress$inc(1/length(sensors), detail = paste("Sensor", s))
+    }
+    #  }
+  }
+  
+  dbDisconnect(con)
+  
+  
+  # Rename columnes to windtools standards
+  colnames(master) <- c("plot","datetime","obs_speed","wind_gust", "obs_dir", "quality", "sensor_quality", "lat", "lon")
+  
+  # Conversions
+  master$obs_speed <- master$obs_speed*1609.34/3600   # convert to m/s
+  master$wind_gust <- master$wind_gust*1609.34/3600   # convert to m/s
+  master$datetime <- as.POSIXct(strptime(master$datetime, '%Y-%m-%d %H:%M:%S'))
+  master = transform(master, lat = as.numeric(lat), lon = as.numeric(lon))
+  
+  return(master)
+}
+
+
 #############################################################################################################
 #### Database Information
 #############################################################################################################
